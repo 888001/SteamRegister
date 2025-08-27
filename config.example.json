@@ -1,0 +1,18 @@
+{
+    "threads": 1,
+    "proxy_type": "http",
+    "captcha_service": "captcha.run",
+    "captcha_api_key": "your_captcha_api_key_here",
+    "email_type": "outlook",
+    "protocol": "GRAPH",
+    "delay_between_registrations": 5,
+    "max_retries": 3,
+    "timeout": 30,
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    "steam_country": "US",
+    "registration_settings": {
+        "use_proxy": true,
+        "verify_email": true,
+        "save_accounts": true
+    }
+}
