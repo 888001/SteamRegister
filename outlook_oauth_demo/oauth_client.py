@@ -5,8 +5,12 @@ OAuth认证客户端
 import requests
 import logging
 import time
+import urllib3
 from typing import Optional, Dict, Any
 from config import OutlookConfig
+
+# 禁用SSL警告
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 class OutlookOAuthClient:
     """Outlook OAuth认证客户端"""
@@ -17,24 +21,29 @@ class OutlookOAuthClient:
     
     def __init__(self, config: OutlookConfig):
         self.config = config
-        self.access_token = None
+        self.access_token = config.access_token  # 从配置中加载已有的access_token
         self.token_expires_at = None
+        if config.expires_timestamp:
+            try:
+                self.token_expires_at = float(config.expires_timestamp)
+            except (ValueError, TypeError):
+                self.token_expires_at = None
         self.logger = logging.getLogger(__name__)
         
     def get_access_token(self, protocol: str = "GRAPH", force_refresh: bool = False) -> Optional[str]:
         """
         获取访问令牌
-        
+
         Args:
             protocol: 协议类型 (GRAPH, IMAP_OAUTH, POP3_OAUTH)
             force_refresh: 强制刷新token
-            
+
         Returns:
             访问令牌字符串，失败返回None
         """
         # 检查现有token是否仍然有效
         if not force_refresh and self.access_token and self._is_token_valid():
-            self.logger.info("使用缓存的访问令牌")
+            self.logger.info("使用现有的有效访问令牌")
             return self.access_token
             
         try:
@@ -52,21 +61,28 @@ class OutlookOAuthClient:
             self.logger.info(f"正在获取{protocol}协议的访问令牌...")
             
             # 发送token请求
-            response = requests.post(self.TOKEN_ENDPOINT, data=data, timeout=30)
+            response = requests.post(self.TOKEN_ENDPOINT, data=data, timeout=30, verify=False)
             
             if response.status_code == 200:
                 result = response.json()
                 self.access_token = result.get('access_token')
                 
-                # 处理新的refresh_token
+                # 处理新的refresh_token和过期时间
                 new_refresh_token = result.get('refresh_token')
-                if new_refresh_token and new_refresh_token != self.config.refresh_token:
-                    self.logger.info("检测到新的refresh_token，正在更新...")
-                    self.config.update_refresh_token(new_refresh_token)
-                
-                # 设置token过期时间（通常是1小时）
                 expires_in = result.get('expires_in', 3600)
                 self.token_expires_at = time.time() + expires_in - 300  # 提前5分钟过期
+
+                # 更新配置文件中的tokens
+                self.config.update_tokens(
+                    new_refresh_token=new_refresh_token if new_refresh_token else None,
+                    new_access_token=self.access_token,
+                    expires_timestamp=str(self.token_expires_at)
+                )
+
+                if new_refresh_token and new_refresh_token != self.config.refresh_token:
+                    self.logger.info("检测到新的refresh_token已更新")
+                else:
+                    self.logger.info("Access token已更新")
                 
                 self.logger.info("成功获取访问令牌")
                 return self.access_token
@@ -133,7 +149,8 @@ class OutlookOAuthClient:
             response = requests.get(
                 'https://graph.microsoft.com/v1.0/me',
                 headers=headers,
-                timeout=30
+                timeout=30,
+                verify=False
             )
             
             if response.status_code == 200:

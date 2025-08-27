@@ -38,7 +38,26 @@ outlook_oauth_demo/
 
 ## 快速开始
 
-### 1. 自动安装和测试
+### 1. 克隆项目
+
+```bash
+git clone <repository-url>
+cd outlook_oauth_demo
+```
+
+### 2. 配置Token文件
+
+复制示例文件并填入您的信息：
+```bash
+cp outlook_token.example.txt outlook_token.txt
+```
+
+编辑 `outlook_token.txt`，格式：
+```
+your_email@outlook.com---your_password---your_refresh_token---your_access_token---expires_timestamp
+```
+
+### 3. 自动安装和测试
 
 **Windows:**
 ```bash
@@ -51,7 +70,7 @@ chmod +x setup_and_test.sh
 ./setup_and_test.sh
 ```
 
-### 2. 手动安装
+### 4. 手动安装
 
 ```bash
 # 创建虚拟环境
@@ -67,9 +86,12 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 3. 运行测试
+### 5. 运行测试
 
 ```bash
+# 完整功能演示
+python final_demo.py
+
 # 交互式菜单
 python main.py
 

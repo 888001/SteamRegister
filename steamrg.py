@@ -38,7 +38,12 @@ def main(email_data, retries = 30):
             session = requests.Session()
             session.proxies = proxies
             cookie_str = "timezoneOffset=28800,0; Steam_Language=english; "
-            token,gid = get_gRecaptchaResponse(proxy_ip,proxy_port,username,password)
+            print(f"使用代理: {proxy_ip}:{proxy_port}")
+            print(f"新会话ID: {id(session)}")
+            # 获取siteKey
+            siteKey, steam_gid = get_siteKey(session)
+            print(f"获取到siteKey: {siteKey}")
+            token,gid = get_gRecaptchaResponse(proxy_ip,proxy_port,username,password,siteKey)
             
             if not gid:
                 raise Exception("人机验证失败")
@@ -201,7 +206,33 @@ def get_init_id(session, cookie_str):
     return None
 
 
-def get_gRecaptchaResponse(proxy_ip,proxy_port,username,password):
+def get_siteKey(session):
+    """获取Steam的siteKey"""
+    url = "https://store.steampowered.com/join/refreshcaptcha/"
+    headers = {
+        "Accept": "*/*",
+        "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36 Edg/125.0.0.0",
+        "Referer": "https://store.steampowered.com/join/",
+        "Origin": "https://store.steampowered.com",
+        "Connection": "keep-alive",
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        "Sec-Fetch-Dest": "empty",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Site": "same-origin",
+        "sec-ch-ua": '"Microsoft Edge";v="125"',
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": '"Windows"'
+    }
+    data = {
+        "count": "1",
+        "hcaptcha": "1"
+    }
+    response = session.post(url, headers=headers, data=data)
+    response_json = response.json()
+    return response_json['sitekey'], response_json['gid']
+
+def get_gRecaptchaResponse(proxy_ip,proxy_port,username,password,siteKey):
     createTask_url = "https://api.captcha.run/v2/tasks"
     headers = {
         'Authorization': clientKey,
@@ -210,15 +241,21 @@ def get_gRecaptchaResponse(proxy_ip,proxy_port,username,password):
 
     payload = json.dumps({
         "captchaType": "HCaptchaSteam",
+        "siteKey": siteKey,
+        "siteReferer": "https://store.steampowered.com/join/",
         "host":proxy_ip,
         "port":proxy_port,
         "login":username,
         "password":password,
-        "developer": "5888a224-d520-4c38-aa71-c8411dd62e8c" 
+        "developer": "5888a224-d520-4c38-aa71-c8411dd62e8c"
     })
 
     response = requests.post(createTask_url, headers=headers, data=payload)
-    taskId = response.json()['taskId']
+    print(f"Captcha API Response: {response.text}")
+    response_data = response.json()
+    print(f"Response JSON: {response_data}")
+    taskId = response_data['taskId']
+    print(f"Task ID: {taskId}")
 
     getTaskResult_url = "https://api.captcha.run/v2/tasks/"+taskId
 

@@ -53,7 +53,7 @@ email----password
 
 Graph API邮箱:
 ```
-email----password----client_id----refresh_token
+email----password----refresh_token----access_token----expires_timestamp----client_id
 ```
 Microsoft Graph API 参数获取方法参考: [wmemail.com](https://wmemail.com/)
 

@@ -8,10 +8,14 @@ import poplib
 import email
 import requests
 import logging
+import urllib3
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 from oauth_client import OutlookOAuthClient
 from config import OutlookConfig
+
+# 禁用SSL警告
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 class OutlookEmailClient:
     """Outlook邮件客户端"""
@@ -61,7 +65,8 @@ class OutlookEmailClient:
                 f'{self.GRAPH_API_BASE}/me/messages',
                 headers=headers,
                 params=params,
-                timeout=30
+                timeout=30,
+                verify=False
             )
             
             if response.status_code == 200:
